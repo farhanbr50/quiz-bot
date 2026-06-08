@@ -1,16 +1,14 @@
 import os
 import asyncio
-import time
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
-from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiohttp import web
 
-# messages.py se welcome text load ho raha hai
+# messages.py se stylish welcome profile load hoga
 from messages import WELCOME_TEXT
 
 TOKEN = os.getenv("BOT_TOKEN")
-RENDER_URL = os.getenv("RENDER_EXTERNAL_URL") # Render ka automatic web URL
+RENDER_URL = os.getenv("RENDER_EXTERNAL_URL")
 
 if not TOKEN:
     raise ValueError("BOT_TOKEN environment variable is missing!")
@@ -18,176 +16,100 @@ if not TOKEN:
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# 🔢 Easy Maths Questions Database for Group Fun
+# 🔢 Quiz Data (Poll Format)
 QUIZ_DATA = [
-    {"q": "2 + 2 = ?", "o": ["3", "4", "5", "6"], "a": "4"},
-    {"q": "5 + 7 = ?", "o": ["10", "11", "12", "13"], "a": "12"},
-    {"q": "10 - 3 = ?", "o": ["6", "7", "8", "9"], "a": "7"},
-    {"q": "4 x 2 = ?", "o": ["6", "8", "10", "12"], "a": "8"},
-    {"q": "20 ÷ 2 = ?", "o": ["5", "10", "15", "20"], "a": "10"}
+    {"q": "2 + 2 = ?", "o": ["3", "4", "5", "6"], "a": 1},       
+    {"q": "5 + 7 = ?", "o": ["10", "11", "12", "13"], "a": 2},     
+    {"q": "10 - 3 = ?", "o": ["6", "7", "8", "9"], "a": 1},       
+    {"q": "4 x 2 = ?", "o": ["6", "8", "10", "12"], "a": 1},      
+    {"q": "20 ÷ 2 = ?", "o": ["5", "10", "15", "20"], "a": 1}      
 ]
 
 GROUP_GAMES = {}
 
-# 🚀 Game Shuru Karne Ka Command
-@dp.message(Command("start.quiz"))
-async def start_premium_quiz(message: types.Message):
-    chat_id = message.chat.id
+# 1️⃣ /start karne par SIRF stylish welcome profile message aayega (Game Shuru nahi hoga)
+@dp.message(Command("start"))
+async def send_welcome_profile(message: types.Message):
     user_name = message.from_user.first_name.upper()
-    
-    if chat_id in GROUP_GAMES:
-        await message.answer("⚠️ **Group mein pehle se ek game chal raha hai!**")
-        return
-
-    GROUP_GAMES[chat_id] = {
-        "current_index": 0,
-        "scores": {},
-        "correct_clicks": [],  
-        "wrong_clicks": [],    
-        "start_time": 0,
-        "msg_id": None
-    }
-    
     text = WELCOME_TEXT.format(user_name=user_name)
     await message.answer(text)
-    await asyncio.sleep(4)
-    await send_vip_question(chat_id)
 
-# 🛑 Game Rokne Ka Naya Command
-@dp.message(Command("stop.quiz"))
-async def stop_premium_quiz(message: types.Message):
+# ⚙️ Speed Changer Command (/sc 10, /sc 20 etc.)
+@dp.message(Command("sc"))
+async def change_quiz_speed(message: types.Message):
+    chat_id = message.chat.id
+    args = message.text.split()
+    
+    if len(args) < 2:
+        await message.answer("⚠️ **Sahi tareeqa:** `/sc 10` ya `/sc 20` likhein!")
+        return
+        
+    try:
+        new_time = int(args[1])
+        if new_time < 5 or new_time > 300:
+            await message.answer("⚠️ **Error:** Speed limit 5s se 300s tak hi ho sakti hai!")
+            return
+            
+        if chat_id not in GROUP_GAMES:
+            GROUP_GAMES[chat_id] = {"active": False, "speed": 15}
+            
+        GROUP_GAMES[chat_id]["speed"] = new_time
+        await message.answer(f"⚡ **Speed Changed Successfully!**\nAb se har sawaal **{new_time} Seconds** tak chalega.")
+        
+    except ValueError:
+        await message.answer("⚠️ **Error:** `/sc` ke aage ek sahi number dalein!")
+
+# 2️⃣ Quiz Shuru Karne Ka Command: /quiz/on
+@dp.message(lambda message: message.text and message.text.lower().startswith('/quiz/on'))
+async def start_native_quiz(message: types.Message):
     chat_id = message.chat.id
     
-    if chat_id in GROUP_GAMES:
-        GROUP_GAMES.pop(chat_id, None) # Game ka data delete kar diya
-        await message.answer("🛑 **Quiz ko beech mein hi rok diya gaya hai!**\n\nNaya game shuru karne ke liye `/start.quiz` dabayein.")
-    else:
-        await message.answer("⚠️ **Abhi group mein koi game nahi chal raha hai jise roka jaye!**")
-
-async def send_vip_question(chat_id: int):
     if chat_id not in GROUP_GAMES:
+        GROUP_GAMES[chat_id] = {"active": False, "speed": 15}
+        
+    if GROUP_GAMES[chat_id]["active"]:
+        await message.answer("⚠️ **Group mein pehle se ek quiz chal raha hai!**")
         return
 
-    game = GROUP_GAMES[chat_id]
-    idx = game["current_index"]
+    GROUP_GAMES[chat_id]["active"] = True
+    current_speed = GROUP_GAMES[chat_id]["speed"]
     
-    if idx < len(QUIZ_DATA):
-        q_item = QUIZ_DATA[idx]
-        game["correct_clicks"] = []
-        game["wrong_clicks"] = []
-        game["start_time"] = time.time()
-        
-        # 💎 Premium Clean Question Design
-        text = (
-            f"⚡ ══════════════════ ⚡\n"
-            f"🎯 ═══ **MATHS QUIZ LIVE** ═══ 🎯\n"
-            f"⚡ ══════════════════ ⚡\n\n"
-            f"📝 **SAWAAL {idx + 1}/{len(QUIZ_DATA)}**\n\n"
-            f"🔥 👉 **{q_item['q']}**\n\n"
-            f"⏱️ *Fatafat option par click karo! Speed points on hain!*"
+    await message.answer(f"🚀 **MATHS QUIZ BATTLE STARTING IN 3 SECONDS...**\n⏱️ *Speed Set:* **{current_speed}s per question!*")
+    await asyncio.sleep(3)
+
+    for idx, q_item in enumerate(QUIZ_DATA):
+        # Agar beech mein /quiz/off kiya toh loop turant ruk jayega
+        if chat_id not in GROUP_GAMES or not GROUP_GAMES[chat_id]["active"]:
+            break
+            
+        # Telegram Polling Quiz
+        await bot.send_poll(
+            chat_id=chat_id,
+            question=f"📝 SAWAAL {idx + 1}/{len(QUIZ_DATA)}:\n👉 {q_item['q']}",
+            options=q_item["o"],
+            type="quiz",
+            correct_option_id=q_item["a"],
+            is_anonymous=False,
+            open_period=current_speed
         )
         
-        builder = InlineKeyboardBuilder()
-        for option in q_item["o"]:
-            builder.add(types.InlineKeyboardButton(text=f"🔢 {option}", callback_data=f"v_ans_{option}"))
-        builder.adjust(2)
-            
-        msg = await bot.send_message(chat_id, text, reply_markup=builder.as_markup())
-        game["msg_id"] = msg.message_id
+        await asyncio.sleep(current_speed + 1)
+
+    if chat_id in GROUP_GAMES and GROUP_GAMES[chat_id]["active"]:
+        await bot.send_message(chat_id, "🏁 **Quiz Khatam! Khelne ke liye sabhi ka shukriya. ✨**")
+        GROUP_GAMES[chat_id]["active"] = False
+
+# 3️⃣ Quiz Rokne Ka Command: /quiz/off
+@dp.message(lambda message: message.text and message.text.lower().startswith('/quiz/off'))
+async def stop_native_quiz(message: types.Message):
+    chat_id = message.chat.id
+    if chat_id in GROUP_GAMES and GROUP_GAMES[chat_id]["active"]:
+        GROUP_GAMES[chat_id]["active"] = False
+        await message.answer("🛑 **Quiz ko beech mein hi rok diya gaya hai!**\n\nNaya game shuru karne ke liye `/quiz/on` likhein.")
     else:
-        await show_final_leaderboard(chat_id)
+        await message.answer("⚠️ **Abhi group mein koi quiz nahi chal raha hai jise roka jaye!**")
 
-@dp.callback_query(lambda c: c.data.startswith("v_ans_"))
-async def handle_vip_answer(callback: types.CallbackQuery):
-    chat_id = callback.message.chat.id
-    user_id = callback.from_user.id
-    user_name = callback.from_user.first_name
-    
-    if chat_id not in GROUP_GAMES:
-        await callback.answer("Koi game active nahi hai.", show_alert=True)
-        return
-        
-    game = GROUP_GAMES[chat_id]
-    all_clicked_ids = [u.get("id") for u in game["correct_clicks"]] + [uid for uid in game["wrong_clicks"]]
-    
-    if user_id in all_clicked_ids:
-        await callback.answer("Tumne is sawaal par pehle hi click kar diya hai! ❌", show_alert=True)
-        return
-        
-    selected_ans = callback.data.split("v_ans_")[1]
-    q_item = QUIZ_DATA[game["current_index"]]
-    
-    if selected_ans == q_item["a"]:
-        points = 120 if len(game["correct_clicks"]) == 0 else 50
-        game["correct_clicks"].append({"id": user_id, "name": user_name, "points": points})
-        
-        if user_id not in game["scores"]:
-            game["scores"][user_id] = {"name": user_name, "score": 0}
-        game["scores"][user_id]["score"] += points
-        await callback.answer(f"✅ Sahi Jawab! (+{points} pts)")
-    else:
-        game["wrong_clicks"].append(user_name)
-        await callback.answer("❌ Galat Jawab! 0 points.")
-        
-    await update_live_message(chat_id)
-
-async def update_live_message(chat_id: int):
-    if chat_id not in GROUP_GAMES: # Agar game stop ho gaya toh message update na ho
-        return
-        
-    game = GROUP_GAMES[chat_id]
-    idx = game["current_index"]
-    q_item = QUIZ_DATA[idx]
-    
-    correct_list = ", ".join([u["name"] for u in game["correct_clicks"]]) if game["correct_clicks"] else "No one yet"
-    wrong_list = ", ".join(game["wrong_clicks"]) if game["wrong_clicks"] else "No one yet"
-    
-    # 📊 Beautiful Clean Update Design
-    text = (
-        f"⚡ ══════════════════ ⚡\n"
-        f"📊 ═══ **QUIZ STATUS (LIVE)** ═══ 📊\n"
-        f"⚡ ══════════════════ ⚡\n\n"
-        f"📝 **SAWAAL {idx + 1}/{len(QUIZ_DATA)}**\n"
-        f"🔥 👉 **{q_item['q']}**\n\n"
-        f"🟩 **Sahi Jawab:** {correct_list}\n"
-        f"🟥 **Galat Jawab:** {wrong_list}\n\n"
-        f"🛑 *Lock ho gaya! Agla sawaal lane ke liye niche button dabayein.*"
-    )
-    
-    builder = InlineKeyboardBuilder()
-    builder.row(types.InlineKeyboardButton(text="⏭️ NEXT QUESTION", callback_data="vip_next"))
-    try:
-        await bot.edit_message_text(chat_id=chat_id, message_id=game["msg_id"], text=text, reply_markup=builder.as_markup())
-    except Exception:
-        pass
-
-@dp.callback_query(lambda c: c.data == "vip_next")
-async def go_to_next_question(callback: types.CallbackQuery):
-    chat_id = callback.message.chat.id
-    if chat_id not in GROUP_GAMES:
-        return
-    game = GROUP_GAMES[chat_id]
-    game["current_index"] += 1
-    await send_vip_question(chat_id)
-
-async def show_final_leaderboard(chat_id: int):
-    game = GROUP_GAMES[chat_id]
-    scores = game["scores"]
-    sorted_scores = sorted(scores.values(), key=lambda x: x["score"], reverse=True)
-    
-    result_text = "🏆 ══════ **FINAL LEADERBOARD** ══════ 🏆\n\n"
-    if not sorted_scores:
-        result_text += "Kisi ne sahi jawab nahi diya! 🤷‍♂️"
-    else:
-        medals = ["🥇", "🥈", "🥉"]
-        for rank, user_data in enumerate(sorted_scores):
-            medal = medals[rank] if rank < 3 else "✨"
-            result_text += f"{medal} Rank {rank+1}: **{user_data['name']}** — `{user_data['score']}` pts\n"
-            
-    await bot.send_message(chat_id, result_text)
-    GROUP_GAMES.pop(chat_id, None)
-
-# 🌐 Webhook Handler (No Conflict System)
+# 🌐 Webhook Handler
 async def handle_webhook(request):
     url = str(request.url)
     if "webhook" in url:
@@ -202,11 +124,9 @@ async def main():
     app.router.add_post("/webhook", handle_webhook)
     app.router.add_get("/", handle_webhook)
     
-    # Automatic Webhook Setting
     if RENDER_URL:
         await bot.delete_webhook(drop_pending_updates=True)
         await bot.set_webhook(url=f"{RENDER_URL}/webhook")
-        print(f"Webhook set successfully to: {RENDER_URL}/webhook")
 
     runner = web.AppRunner(app)
     await runner.setup()
@@ -214,10 +134,9 @@ async def main():
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
     
-    # Keep running forever
     while True:
         await asyncio.sleep(3600)
 
 if __name__ == "__main__":
     asyncio.run(main())
-      
+    
