@@ -6,6 +6,9 @@ from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiohttp import web
 
+# 📥 Yahan hum messages.py se welcome text ko import kar rahe hain
+from messages import WELCOME_TEXT
+
 TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
     raise ValueError("BOT_TOKEN environment variable is missing!")
@@ -33,6 +36,7 @@ GROUP_GAMES = {}
 @dp.message(Command("start"))
 async def start_premium_quiz(message: types.Message):
     chat_id = message.chat.id
+    user_name = message.from_user.first_name.upper()
     
     if chat_id in GROUP_GAMES:
         await message.answer("⚠️ Group mein pehle se ek game chal raha hai!")
@@ -41,14 +45,17 @@ async def start_premium_quiz(message: types.Message):
     GROUP_GAMES[chat_id] = {
         "current_index": 0,
         "scores": {},
-        "correct_clicks": [],  # List of dicts: {"name": name, "points": pts}
-        "wrong_clicks": [],    # List of names
+        "correct_clicks": [],  
+        "wrong_clicks": [],    
         "start_time": 0,
         "msg_id": None
     }
     
-    await message.answer("⚡ **PREMIUM MULTIPLAYER QUIZ** ⚡\n\n🎯 *Taiyar ho jao sab log! 10 Dhamakedar sawaal aane wale hain.*\n\n🚀 Jo jitna fast reply karega, use utne zyada points milenge!")
-    await asyncio.sleep(3)
+    # ⚡ messages.py se design load ho raha hai aur user ka naam fit ho raha hai
+    text = WELCOME_TEXT.format(user_name=user_name)
+    
+    await message.answer(text)
+    await asyncio.sleep(4)
     await send_vip_question(chat_id)
 
 # ❓ Send Question
@@ -65,7 +72,6 @@ async def send_vip_question(chat_id: int):
         game["wrong_clicks"] = []
         game["start_time"] = time.time()
         
-        # Professional Look Design
         text = (
             f"📊 ═══ **QUIZ BOT** ═══ 📊\n\n"
             f"❓ **SAWAAL {idx + 1}/{len(QUIZ_DATA)}**\n\n"
@@ -95,8 +101,7 @@ async def handle_vip_answer(callback: types.CallbackQuery):
         
     game = GROUP_GAMES[chat_id]
     
-    # Check if already clicked
-    all_clicked_ids = [u.get("id") for u in game["correct_clicks"]] + [user_id for user_id in game["wrong_clicks"]]
+    all_clicked_ids = [u.get("id") for u in game["correct_clicks"]] + [uid for uid in game["wrong_clicks"]]
     if user_id in all_clicked_ids:
         await callback.answer("Tumne is sawaal par pehle hi click kar diya hai! ❌", show_alert=True)
         return
@@ -104,14 +109,13 @@ async def handle_vip_answer(callback: types.CallbackQuery):
     selected_ans = callback.data.split("v_ans_")[1]
     q_item = QUIZ_DATA[game["current_index"]]
     
-    # Calculate Speed Points
     click_time = time.time() - game["start_time"]
     
     if selected_ans == q_item["a"]:
-        # Agar pehla banda hai to 100 points, baaki sabko 50 points
-        points = 100 if len(game["correct_clicks"]) == 0 else 50
-        if click_time < 2.0:  # Super Fast Bonus
-            points += 20
+        # Pehle bande ko 120 points (Speed Bonus), baaki ko 50 points
+        points = 120 if len(game["correct_clicks"]) == 0 else 50
+        if click_time < 2.0 and points == 120:  
+            points += 10 # Extra lightning fast bonus
             
         game["correct_clicks"].append({"id": user_id, "name": user_name, "points": points})
         
@@ -124,7 +128,6 @@ async def handle_vip_answer(callback: types.CallbackQuery):
         game["wrong_clicks"].append(user_name)
         await callback.answer("❌ Galat Jawab! 0 points.")
         
-    # Live Message Update (Kaun sahi de raha hai, kaun galat)
     await update_live_message(chat_id)
 
 # 🔄 Update Board Live
@@ -145,7 +148,6 @@ async def update_live_message(chat_id: int):
         f"🛑 Game locked! Agla sawaal lane ke liye niche button dabayein."
     )
     
-    # Change keyboard to add "Next Question" board
     builder = InlineKeyboardBuilder()
     builder.row(types.InlineKeyboardButton(text="⏭️ Next Question", callback_data="vip_next"))
     
@@ -164,7 +166,6 @@ async def go_to_next_question(callback: types.CallbackQuery):
     game = GROUP_GAMES[chat_id]
     q_item = QUIZ_DATA[game["current_index"]]
     
-    # Reveal answer before going next
     try:
         await bot.send_message(chat_id, f"📢 Pichle sawaal ka sahi jawab tha: **{q_item['a']}**")
     except Exception:
@@ -196,7 +197,7 @@ async def show_final_leaderboard(chat_id: int):
 
 # Fake Web Server for Render
 async def handle_web(request):
-    return web.Response(text="VIP Quiz Bot is Running Live!")
+    return web.Response(text="VIP Quiz Bot with External Messages is Running Live!")
 
 async def main():
     app = web.Application()
