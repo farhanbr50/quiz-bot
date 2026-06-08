@@ -5,7 +5,6 @@ from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiohttp import web
 
-# Token Verification
 TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
     raise ValueError("BOT_TOKEN environment variable is missing!")
@@ -13,118 +12,148 @@ if not TOKEN:
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# Simple Questions Database
-QUIZ_DATA = {
-    "science": [
-        {"q": "Pani (Water) ka chemical formula kya hai?", "o": ["H2O", "CO2", "O2", "NaCl"], "a": "H2O"},
-        {"q": "Insaan ke jism mein kitni haddiyan (bones) hoti hain?", "o": ["201", "206", "208", "210"], "a": "206"}
-    ],
-    "movies": [
-        {"q": "Sholay film mein Gabbar Singh ka role kisne kiya tha?", "o": ["Amitabh Bachchan", "Amjad Khan", "Dharmendra", "Sanjeev Kumar"], "a": "Amjad Khan"},
-        {"q": "Bahubali director ka naam kya hai?", "o": ["S.S. Rajamouli", "Karan Johar", "Anurag Kashyap", "Rohit Shetty"], "a": "S.S. Rajamouli"}
-    ],
-    "gk": [
-        {"q": "India ki capital (rajdhani) kaunsi hai?", "o": ["Mumbai", "Kolkata", "New Delhi", "Chennai"], "a": "New Delhi"},
-        {"q": "Duniya ka sabse bada samundar (ocean) kaunsa hai?", "o": ["Indian Ocean", "Pacific Ocean", "Atlantic Ocean", "Arctic Ocean"], "a": "Pacific Ocean"}
-    ],
-    "tech": [
-        {"q": "Python kya hai?", "o": ["Programming Language", "Snake", "Game", "Browser"], "a": "Programming Language"},
-        {"q": "iPhone kis company ka product hai?", "o": ["Samsung", "Apple", "Google", "Mi"], "a": "Apple"}
-    ]
-}
+# Questions Database
+QUIZ_DATA = [
+    {"q": "Pani (Water) ka chemical formula kya hai?", "o": ["H2O", "CO2", "O2", "NaCl"], "a": "H2O"},
+    {"q": "Insaan ke jism mein kitni haddiyan (bones) hoti hain?", "o": ["201", "206", "208", "210"], "a": "206"},
+    {"q": "Sholay film mein Gabbar Singh ka role kisne kiya tha?", "o": ["Amitabh Bachchan", "Amjad Khan", "Dharmendra", "Sanjeev Kumar"], "a": "Amjad Khan"},
+    {"q": "India ki capital (rajdhani) kaunsi hai?", "o": ["Mumbai", "Kolkata", "New Delhi", "Chennai"], "a": "New Delhi"},
+    {"q": "iPhone kis company ka product hai?", "o": ["Samsung", "Apple", "Google", "Mi"], "a": "Apple"}
+]
 
-USER_STATES = {}
+# Group Game State Storage
+# Structure: { chat_id: { "current_index": 0, "scores": { user_id: { "name": name, "score": score } }, "answered_users": [], "msg_id": 123 } }
+GROUP_GAMES = {}
 
-# Start Command
+# Start Command for Group
 @dp.message(Command("start"))
-async def start_cmd(message: types.Message):
-    user_name = message.from_user.first_name.upper()
+async def start_group_quiz(message: types.Message):
+    chat_id = message.chat.id
     
-    welcome_text = (
-        f"╔════════════════════════╗\n"
-        f"       WELCOME, {user_name}! 👋\n"
-        f"╚════════════════════════╝\n\n"
-        f"Hello {message.from_user.first_name}!\n"
-        f"Niche diye gaye buttons se apni pasand ki category chuno aur quiz khelo:"
-    )
-    
-    builder = InlineKeyboardBuilder()
-    builder.row(types.InlineKeyboardButton(text="📚 Science", callback_data="cat_science"))
-    builder.row(types.InlineKeyboardButton(text="🎬 Movies", callback_data="cat_movies"))
-    builder.row(types.InlineKeyboardButton(text="💡 GK", callback_data="cat_gk"))
-    builder.row(types.InlineKeyboardButton(text="💻 Tech", callback_data="cat_tech"))
-    
-    await message.answer(welcome_text, reply_markup=builder.as_markup())
+    # Check if game is already running in this group
+    if chat_id in GROUP_GAMES:
+        await message.answer("⚠️ Group mein pehle se ek quiz chal raha hai!")
+        return
 
-# Category Selection
-@dp.callback_query(lambda c: c.data.startswith("cat_"))
-async def select_category(callback: types.CallbackQuery):
-    category = callback.data.split("_")[1]
-    user_id = callback.from_user.id
-    
-    USER_STATES[user_id] = {
-        "category": category,
+    # Initialize New Game for the Group
+    GROUP_GAMES[chat_id] = {
         "current_index": 0,
-        "score": 0
+        "scores": {},
+        "answered_users": [],
+        "msg_id": None
     }
     
-    await send_question(callback.message, user_id)
-    await callback.answer()
+    await message.answer("🎮 **GROUP MULTIPLAYER QUIZ SHURU HO RAHA HAI!** 🎮\n\nTaiyar ho jao sab log! 5 seconds mein pehla sawaal aa raha hai...")
+    await asyncio.sleep(5)
+    await send_group_question(chat_id)
 
-# Send Question Logic
-async def send_question(message: types.Message, user_id: int):
-    state = USER_STATES[user_id]
-    category = state["category"]
-    idx = state["current_index"]
+# Function to Send Question to Group
+async def send_group_question(chat_id: int):
+    if chat_id not in GROUP_GAMES:
+        return
+
+    game = GROUP_GAMES[chat_id]
+    idx = game["current_index"]
     
-    questions = QUIZ_DATA[category]
-    
-    if idx < len(questions):
-        q_item = questions[idx]
-        text = f"Sawaal {idx + 1}:\n\n{q_item['q']}"
+    if idx < len(QUIZ_DATA):
+        q_item = QUIZ_DATA[idx]
+        game["answered_users"] = [] # Reset answered list for new question
+        
+        text = f"❓ **SAWAAL {idx + 1}**:\n\n🔥 **{q_item['q']}**\n\n*Sab log jaldi jawab do!*"
         
         builder = InlineKeyboardBuilder()
         for option in q_item["o"]:
-            builder.row(types.InlineKeyboardButton(text=option, callback_data=f"ans_{option}"))
+            builder.row(types.InlineKeyboardButton(text=option, callback_data=f"g_ans_{option}"))
             
-        await message.edit_text(text, reply_markup=builder.as_markup())
+        msg = await bot.send_message(chat_id, text, reply_markup=builder.as_markup())
+        game["msg_id"] = msg.message_id
+        
+        # 15 seconds ka timer for each question
+        await asyncio.sleep(15)
+        await question_timeout(chat_id)
     else:
-        score = state["score"]
-        total = len(questions)
-        await message.edit_text(
-            f"🏁 **QUIZ KHATAM!**\n\n"
-            f"Tumhara Final Score: **{score}/{total}**\n\n"
-            f"Dubara khelne ke liye /start dabayein."
-        )
-        USER_STATES.pop(user_id, None)
+        await show_final_leaderboard(chat_id)
 
-# Answer Handling
-@dp.callback_query(lambda c: c.data.startswith("ans_"))
-async def handle_answer(callback: types.CallbackQuery):
+# Handler for Clicks (10-20 Users can click simultaneously)
+@dp.callback_query(lambda c: c.data.startswith("g_ans_"))
+async def handle_group_answer(callback: types.CallbackQuery):
+    chat_id = callback.message.chat.id
     user_id = callback.from_user.id
-    if user_id not in USER_STATES:
-        await callback.answer("Purana game hai, /start dabayein.", show_alert=True)
+    user_name = callback.from_user.first_name
+    
+    if chat_id not in GROUP_GAMES:
+        await callback.answer("Koi quiz active nahi hai.", show_alert=True)
         return
         
-    selected_ans = callback.data.split("_")[1]
-    state = USER_STATES[user_id]
-    category = state["category"]
-    idx = state["current_index"]
+    game = GROUP_GAMES[chat_id]
     
-    q_item = QUIZ_DATA[category][idx]
-    
-    if selected_ans == q_item["a"]:
-        state["score"] += 1
-        await callback.answer("✅ Sahi Jawab! Shabaash!")
-    else:
-        await callback.answer(f"❌ Galat Jawab! Sahi tha: {q_item['a']}", show_alert=True)
+    # Check if user already answered this question
+    if user_id in game["answered_users"]:
+        await callback.answer("Tumne is sawaal ka jawab pehle hi de diya hai! ❌", show_alert=True)
+        return
         
-    state["current_index"] += 1
-    await send_question(callback.message, user_id)
+    selected_ans = callback.data.split("g_ans_")[1]
+    q_item = QUIZ_DATA[game["current_index"]]
+    
+    # Add to answered list so they can't click again
+    game["answered_users"].append(user_id)
+    
+    # Initialize user score if not exists
+    if user_id not in game["scores"]:
+        game["scores"][user_id] = {"name": user_name, "score": 0}
+        
+    if selected_ans == q_item["a"]:
+        game["scores"][user_id]["score"] += 1
+        await callback.answer("✅ Sahi Jawab! Tumhe 1 point mila.")
+    else:
+        await callback.answer(f"❌ Galat Jawab! Sahi tha: {q_item['a']}")
 
-# Fake Web Server for Render Free Tier Port Binding
+# When 15 seconds are over
+async def question_timeout(chat_id: int):
+    if chat_id not in GROUP_GAMES:
+        return
+        
+    game = GROUP_GAMES[chat_id]
+    q_item = QUIZ_DATA[game["current_index"]]
+    
+    # Edit message to show correct answer and remove buttons
+    try:
+        await bot.edit_message_text(
+            chat_id=chat_id,
+            message_id=game["msg_id"],
+            text=f"⏰ **TIME OUT!**\n\nSawaal: {q_item['q']}\n\n🟩 **Sahi Jawab Tha:** {q_item['a']}\n\nAgla sawaal 5 seconds mein..."
+        )
+    except Exception:
+        pass
+        
+    await asyncio.sleep(5)
+    game["current_index"] += 1
+    await send_group_question(chat_id)
+
+# Final Result & Leaderboard
+async def show_final_leaderboard(chat_id: int):
+    game = GROUP_GAMES[chat_id]
+    scores = game["scores"]
+    
+    # Sort users by their highest score
+    sorted_scores = sorted(scores.values(), key=lambda x: x["score"], reverse=True)
+    
+    result_text = "🏁 ═══ **QUIZ KHATAM!** ═══ 🏁\n\n🏆 **FINAL LEADERBOARD** 🏆\n\n"
+    
+    if not sorted_scores:
+        result_text += "Kisi ne bhi quiz nahi khela! 🤷‍♂️"
+    else:
+        medals = ["🥇", "🥈", "🥉"]
+        for rank, user_data in enumerate(sorted_scores):
+            medal = medals[rank] if rank < 3 else "✨"
+            result_text += f"{medal} **{user_data['name']}**: {user_data['score']} Points\n"
+            
+    await bot.send_message(chat_id, result_text)
+    GROUP_GAMES.pop(chat_id, None) # Clear group game session
+
+# Fake Web Server for Render
 async def handle_web(request):
-    return web.Response(text="Bot is running completely fine on Free Tier!")
+    return web.Response(text="Group Quiz Bot is Running Live!")
 
 async def main():
     app = web.Application()
