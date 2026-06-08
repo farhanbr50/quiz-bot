@@ -1,54 +1,78 @@
-    # Batch 2 (26-50)
-    {"q": "7 x 7 = ?", "o": ["47", "48", "49", "50"], "a": 2},
-    {"q": "30 + 45 = ?", "o": ["65", "70", "75", "80"], "a": 2},
-    {"q": "80 - 40 = ?", "o": ["30", "40", "50", "60"], "a": 1},
-    {"q": "11 x 11 = ?", "o": ["111", "121", "131", "141"], "a": 1},
-    {"q": "Sahi spelling: Water?", "o": ["Watar", "Water", "Woter", "Watir"], "a": 1},
-    {"q": "Sahi spelling: School?", "o": ["Scol", "Shul", "School", "Schoole"], "a": 2},
-    {"q": "Sahi spelling: Book?", "o": ["Bok", "Book", "Boke", "Bouk"], "a": 1},
-    {"q": "Opposite of 'Good'?", "o": ["Best", "Nice", "Bad", "Fine"], "a": 2},
-    {"q": "Opposite of 'Yes'?", "o": ["Never", "No", "Ok", "Sure"], "a": 1},
-    {"q": "Plural: 1 Dog, 5 ____?", "o": ["Doges", "Dogs", "Dogz", "Puppies"], "a": 1},
-    {"q": "36 ÷ 6 = ?", "o": ["5", "6", "7", "8"], "a": 1},
-    {"q": "500 - 100 = ?", "o": ["300", "400", "500", "600"], "a": 1},
-    {"q": "13 + 17 = ?", "o": ["28", "29", "30", "31"], "a": 2},
-    {"q": "6 x 4 = ?", "o": ["20", "22", "24", "26"], "a": 2},
-    {"q": "90 - 45 = ?", "o": ["35", "40", "45", "50"], "a": 2},
-    {"q": "Opposite of 'Black'?", "o": ["Dark", "White", "Grey", "Blue"], "a": 1},
-    {"q": "Opposite of 'Love'?", "o": ["Like", "Hate", "Angry", "Sad"], "a": 1},
-    {"q": "Opposite of 'Open'?", "o": ["Close", "Lock", "Shut", "Hide"], "a": 0},
-    {"q": "Opposite of 'Rich'?", "o": ["Poor", "Money", "Gold", "Cheap"], "a": 0},
-    {"q": "Plural: 1 Car, 2 ____?", "o": ["Cares", "Cars", "Carz", "Careses"], "a": 1},
-    {"q": "40 ÷ 5 = ?", "o": ["6", "7", "8", "9"], "a": 2},
-    {"q": "15 x 2 = ?", "o": ["25", "30", "35", "40"], "a": 1},
-    {"q": "25 + 25 = ?", "o": ["45", "50", "55", "60"], "a": 1},
-    {"q": "70 - 35 = ?", "o": ["30", "35", "40", "45"], "a": 1},
-    {"q": "3 x 9 = ?", "o": ["24", "27", "30", "33"], "a": 1},
+import os
+import asyncio
+import random
+import re
+from aiogram import Bot, Dispatcher, types
+from aiogram.filters import Command
+from aiohttp import web
 
-    # Batch 3 (51-75)
-    {"q": "100 ÷ 4 = ?", "o": ["20", "25", "30", "35"], "a": 1},
-    {"q": "8 + 9 = ?", "o": ["15", "16", "17", "18"], "a": 2},
-    {"q": "14 - 6 = ?", "o": ["6", "7", "8", "9"], "a": 2},
-    {"q": "12 x 5 = ?", "o": ["50", "55", "60", "65"], "a": 2},
-    {"q": "81 ÷ 9 = ?", "o": ["7", "8", "9", "10"], "a": 2},
-    {"q": "Sahi spelling: House?", "o": ["Hous", "House", "Howse", "Huse"], "a": 1},
-    {"q": "Sahi spelling: Computer?", "o": ["Computar", "Computer", "Computor", "Comptur"], "a": 1},
-    {"q": "Sahi spelling: Mobile?", "o": ["Mobil", "Mobile", "Mobeil", "Mobail"], "a": 1},
-    {"q": "Sahi spelling: Clock?", "o": ["Clok", "Clock", "Cloke", "Clook"], "a": 1},
-    {"q": "Opposite of 'Left'?", "o": ["Right", "Down", "Straight", "Back"], "a": 0},
-    {"q": "45 + 45 = ?", "o": ["80", "85", "90", "95"], "a": 2},
-    {"q": "200 - 50 = ?", "o": ["130", "140", "150", "160"], "a": 2},
-    {"q": "7 x 7 = ?", "o": ["47", "48", "49", "50"], "a": 2},
-    {"q": "64 ÷ 8 = ?", "o": ["6", "7", "8", "9"], "a": 2},
-    {"q": "18 + 12 = ?", "o": ["28", "30", "32", "34"], "a": 1},
-    {"q": "55 - 22 = ?", "o": ["31", "33", "35", "37"], "a": 1},
-    {"q": "4 x 8 = ?", "o": ["30", "32", "34", "36"], "a": 1},
-    {"q": "50 ÷ 2 = ?", "o": ["20", "25", "30", "35"], "a": 1},
-    {"q": "9 + 14 = ?", "o": ["21", "22", "23", "24"], "a": 2},
-    {"q": "33 - 11 = ?", "o": ["20", "22", "24", "26"], "a": 1},
-    {"q": "6 x 7 = ?", "o": ["40", "42", "44", "46"], "a": 1},
-    {"q": "120 ÷ 10 = ?", "o": ["10", "12", "14", "16"], "a": 1},
-    {"q": "65 + 35 = ?", "o": ["90", "95", "100", "105"], "a": 2},
-    {"q": "150 - 75 = ?", "o": ["65", "70", "75", "80"], "a": 2},
-    {"q": "12 x 3 = ?", "o": ["32", "34", "36", "38"], "a": 2},
-    {"q": "2 + 2 = ?", "o": ["3", "4", "5", "6"], "a": 1}, {"q": "5 + 7 = ?", "o": ["10", "11", "12", "13"], "a": 2}, {"q": "10 - 3 = ?", "o": ["6", "7", "8", "9"], "a": 1}, {"q": "4 x 2 = ?", "o": ["6", "8", "10", "12"], "a": 1}, {"q": "20 ÷ 2 = ?", "o": ["5", "10", "15", "20"], "a": 1}, {"q": "15 + 15 = ?", "o": ["25", "30", "35", "40"], "a": 1}, {"q": "9 x 9 = ?", "o": ["72", "81", "90", "99"], "a": 1}, {"q": "50 - 25 = ?", "o": ["20", "25", "30", "35"], "a": 1}, {"q": "12 ÷ 3 = ?", "o": ["3", "4", "5", "6"], "a": 1}, {"q": "100 + 200 = ?", "o": ["250", "300", "350", "400"], "a": 1}, {"q": "Apple spelling?", "o": ["Apel", "Apple", "Appel", "Aple"], "a": 1}, {"q": "Ball spelling?", "o": ["Bal", "Baal", "Boll", "Ball"], "a": 3}, {"q": "King spelling?", "o": ["Keng", "King", "Kyng", "Kengs"], "a": 1}, {"q": "Devil spelling?", "o": ["Dival", "Devil", "Devel", "Devill"], "a": 1}, {"q": "Opposite of Day?", "o": ["Night", "Morning", "Evening", "Noon"], "a": 0}, {"q": "Opposite of Hot?", "o": ["Warm", "Cold", "Spicy", "Ice"], "a": 1}, {"q": "Opposite of Big?", "o": ["Large", "Huge", "Small", "Tall"], "a": 2}, {"q": "Opposite of Fast?", "o": ["Quick", "Slow", "Run", "Stop"], "a": 1}, {"q": "1 Boy, 2 ____?", "o": ["Boyes", "Boys", "Boies", "Boyen"], "a": 1}, {"q": "Friend spelling?", "o": ["Frend", "Freind", "Friend", "Frind"], "a": 2}, {"q": "6 x 7 = ?", "o": ["40", "42", "44", "46"], "a": 1}, {"q": "8 x 8 = ?", "o": ["60", "64", "68", "72"], "a": 1}, {"q": "Opposite of Happy?", "o": ["Sad", "Angry", "Joy", "Cry"], "a": 0}, {"q": "Opposite of Up?", "o": ["High", "Down", "Left", "Right"], "a": 1}, {"q": "1 Cat, 3 ____?", "o": ["Cats", "Cates", "Catz", "Kittens"], "a": 0}, {"q": "7 x 7 = ?", "o": ["47", "48", "49", "50"], "a": 2}, {"q": "30 + 45 = ?", "o": ["65", "70", "75", "80"], "a": 2}, {"q": "80 - 40 = ?", "o": ["30", "40", "50", "60"], "a": 1}, {"q": "11 x 11 = ?", "o": ["111", "121", "131", "141"], "a": 1}, {"q": "Water spelling?", "o": ["Watar", "Water", "Woter", "Watir"], "a": 1}, {"q": "School spelling?", "o": ["Scol", "Shul", "School", "Schoole"], "a": 2}, {"q": "Book spelling?", "o": ["Bok", "Book", "Boke", "Bouk"], "a": 1}, {"q": "Opposite of Good?", "o": ["Best", "Nice", "Bad", "Fine"], "a": 2}, {"q": "Opposite of Yes?", "o": ["Never", "No", "Ok", "Sure"], "a": 1}, {"q": "1 Dog, 5 ____?", "o": ["Doges", "Dogs", "Dogz", "Puppies"], "a": 1}, {"q": "36 ÷ 6 = ?", "o": ["5", "6", "7", "8"], "a": 1}, {"q": "500 - 100 = ?", "o": ["300", "400", "500", "600"], "a": 1}, {"q": "13 + 17 = ?", "o": ["28", "29", "30", "31"], "a": 2}, {"q": "6 x 4 = ?", "o": ["20", "22", "24", "26"], "a": 2}, {"q": "90 - 45 = ?", "o": ["35", "40", "45", "50"], "a": 2}, {"q": "Opposite of Black?", "o": ["Dark", "White", "Grey", "Blue"], "a": 1}, {"q": "Opposite of Love?", "o": ["Like", "Hate", "Angry", "Sad"], "a": 1}, {"q": "Opposite of Open?", "o": ["Close", "Lock", "Shut", "Hide"], "a": 0}, {"q": "Opposite of Rich?", "o": ["Poor", "Money", "Gold", "Cheap"], "a": 0}, {"q": "1 Car, 2 ____?", "o": ["Cares", "Cars", "Carz", "Careses"], "a": 1}, {"q": "40 ÷ 5 = ?", "o": ["6", "7", "8", "9"], "a": 2}, {"q": "15 x 2 = ?", "o": ["25", "30", "35", "40"], "a": 1}, {"q": "25 + 25 = ?", "o": ["45", "50", "55", "60"], "a": 1}, {"q": "70 - 35 = ?", "o": ["30", "35", "40", "45"], "a": 1}, {"q": "3 x 9 = ?", "o": ["24", "27", "30", "33"], "a": 1},
+# Files ko import kar rahe hain
+from welcome import get_welcome_text
+from quiz_data import QUESTIONS 
+
+TOKEN = os.getenv("BOT_TOKEN")
+RENDER_URL = os.getenv("RENDER_EXTERNAL_URL")
+
+bot = Bot(token=TOKEN)
+dp = Dispatcher()
+
+GROUP_GAMES = {}
+
+@dp.message(Command("start"))
+async def send_welcome(message: types.Message):
+    user_name = message.from_user.first_name.upper() if message.from_user.first_name else "PLAYER"
+    # welcome.py se text utha raha hai
+    await message.answer(get_welcome_text(user_name), parse_mode="Markdown")
+
+@dp.message(Command("sp"))
+async def change_quiz_speed(message: types.Message):
+    args = message.text.split()
+    if len(args) < 2: return
+    num = re.search(r'\d+', args[1])
+    if num:
+        GROUP_GAMES[message.chat.id] = GROUP_GAMES.get(message.chat.id, {"active": False, "speed": 15})
+        GROUP_GAMES[message.chat.id]["speed"] = int(num.group())
+        await message.answer(f"⚡ Speed Updated: {num.group()}s")
+
+@dp.message(lambda message: message.text and message.text.lower().startswith('/quiz/on'))
+async def start_quiz(message: types.Message):
+    chat_id = message.chat.id
+    game = GROUP_GAMES.get(chat_id, {"active": False, "speed": 15})
+    if game["active"]: return await message.answer("⚠️ Quiz pehle se chal raha hai!")
+    game["active"] = True
+    GROUP_GAMES[chat_id] = game
+    
+    # quiz_data.py se QUESTIONS list use ho rahi hai
+    round_questions = random.sample(QUESTIONS, min(len(QUESTIONS), 15))
+    await message.answer("🚀 QUIZ STARTING!")
+    
+    for idx, q in enumerate(round_questions):
+        if not GROUP_GAMES[chat_id]["active"]: break
+        await bot.send_poll(chat_id, f"Sawaal {idx+1}: {q['q']}", q['o'], 
+                            type="quiz", correct_option_id=q['a'], open_period=game["speed"])
+        await asyncio.sleep(game["speed"] + 1)
+    GROUP_GAMES[chat_id]["active"] = False
+
+@dp.message(lambda message: message.text and message.text.lower().startswith('/quiz/off'))
+async def stop_quiz(message: types.Message):
+    if message.chat.id in GROUP_GAMES: 
+        GROUP_GAMES[message.chat.id]["active"] = False
+    await message.answer("🛑 Quiz rok diya gaya hai.")
+
+async def handle_webhook(request):
+    data = await request.json()
+    await dp.feed_update(bot, types.Update(**data))
+    return web.Response(text="OK")
+
+async def main():
+    app = web.Application()
+    app.router.add_post("/webhook", handle_webhook)
+    if RENDER_URL: await bot.set_webhook(url=f"{RENDER_URL}/webhook")
+    runner = web.AppRunner(app)
+    await runner.setup()
+    await web.TCPSite(runner, "0.0.0.0", int(os.getenv("PORT", 10000))).start()
+    while True: await asyncio.sleep(3600)
+
+if __name__ == "__main__":
+    asyncio.
+    run(main())
