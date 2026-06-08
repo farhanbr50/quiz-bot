@@ -1,6 +1,7 @@
 import os
 import asyncio
 import random
+import re
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiohttp import web
@@ -167,7 +168,7 @@ QUIZ_DATA = [
     {"q": "Sahi spelling chuno (Game):", "o": ["Gaim", "Game", "Gaym", "Geim"], "a": 1},
     {"q": "Sahi spelling chuno (Music):", "o": ["Musik", "Musyc", "Music", "Muzic"], "a": 2},
     {"q": "Sahi spelling chuno (Movie):", "o": ["Movi", "Movie", "Movy", "Muvi"], "a": 1},
-    {"q": "Opposite of 'True' kya hota hai?", "o": ["False", "Wrong", "Lie", "Correct"], "a": 0},
+    {"q": "True ya False chuno: 5 > 3?", "o": ["True", "False"], "a": 0},
     {"q": "Opposite of 'First' kya hota hai?", "o": ["Second", "Last", "End", "Final"], "a": 1},
     {"q": "Opposite of 'Heavy' kya hota hai?", "o": ["Light", "Soft", "Thin", "Small"], "a": 0},
     {"q": "Opposite of 'Beautiful' kya hota hai?", "o": ["Ugly", "Bad", "Dirty", "Cute"], "a": 0},
@@ -226,7 +227,7 @@ QUIZ_DATA = [
 
 GROUP_GAMES = {}
 
-# 1️⃣ /start karne par SIRF stylish welcome profile message aayega
+# 1️⃣ /start karne par Profile message
 @dp.message(Command("start"))
 async def send_welcome_profile(message: types.Message):
     user_name = message.from_user.first_name if message.from_user.first_name else "PLAYER"
@@ -234,30 +235,38 @@ async def send_welcome_profile(message: types.Message):
     text = WELCOME_TEXT.format(user_name=user_name)
     await message.answer(text)
 
-# ⚙️ Speed Changer Command (/sc 10, /sc 20 etc.)
-@dp.message(Command("sc"))
+# ⚙️ Speed Changer Upgraded Command (/sp 10, /sp 15s etc.)
+@dp.message(Command("sp"))
 async def change_quiz_speed(message: types.Message):
     chat_id = message.chat.id
     args = message.text.split()
     
     if len(args) < 2:
-        await message.answer("⚠️ **Sahi tareeqa:** `/sc 10` ya `/sc 20` likhein!")
+        await message.answer("⚠️ **Sahi tareeqa:** `/sp 10` ya `/sp 15s` likhein!")
         return
         
     try:
-        new_time = int(args[1])
-        if new_time < 5 or new_time > 300:
-            await message.answer("⚠️ **Error:** Speed limit 5s se 300s tak hi ho sakti hai!")
+        # ReGex se sirf number nikalenge agar sath me 's' ya 'seconds' likha ho tab bhi
+        num_match = re.search(r'\d+', args[1])
+        if not num_match:
+            await message.answer("⚠️ **Error:** `/sp` ke aage ek sahi number dalein!")
+            return
+            
+        new_time = int(num_match.group())
+        
+        # Telegram native poll limits check (5s se kam aur 600s se zyada nahi ho sakta)
+        if new_time < 5 or new_time > 600:
+            await message.answer("⚠️ **Telegram Error:** Speed kam se kam **5 seconds** aur zyada se zyada **600 seconds** hi rakh sakte hain!")
             return
             
         if chat_id not in GROUP_GAMES:
             GROUP_GAMES[chat_id] = {"active": False, "speed": 15}
             
         GROUP_GAMES[chat_id]["speed"] = new_time
-        await message.answer(f"⚡ **Speed Changed Successfully!**\nAb se har sawaal **{new_time} Seconds** tak chalega.")
+        await message.answer(f"⚡ **Speed Updated!**\nAb se har sawaal **{new_time} Seconds** tak chalega.")
         
-    except ValueError:
-        await message.answer("⚠️ **Error:** `/sc` ke aage ek sahi number dalein!")
+    except Exception:
+        await message.answer("⚠️ **Error:** Speed change karne me koi dikkat aayi!")
 
 # 2️⃣ Quiz Shuru Karne Ka Command: /quiz/on
 @dp.message(lambda message: message.text and message.text.lower().startswith('/quiz/on'))
@@ -274,20 +283,20 @@ async def start_native_quiz(message: types.Message):
     GROUP_GAMES[chat_id]["active"] = True
     current_speed = GROUP_GAMES[chat_id]["speed"]
     
-    # Pure database (200 sawaal) se har round mein randomly 15 mix sawaal nikalega
     round_questions = random.sample(QUIZ_DATA, min(len(QUIZ_DATA), 15))
     total_q = len(round_questions)
 
-    await message.answer(f"🚀 **MIX (MATHS + ENGLISH) QUIZ BATTLE STARTING IN 3 SECONDS...**\n⏱️ *Speed:* **{current_speed}s** | 📝 *Total Sawaal:* **{total_q}**")
+    await message.answer(f"🚀 **MIX QUIZ BATTLE STARTING IN 3 SECONDS...**\n⏱️ *Speed:* **{current_speed}s** | 📝 *Total Sawaal:* **{total_q}**")
     await asyncio.sleep(3)
 
     for idx, q_item in enumerate(round_questions):
         if chat_id not in GROUP_GAMES or not GROUP_GAMES[chat_id]["active"]:
             break
             
+        # Poll Title se saare extra symbols mita diye taaki design kharab na ho
         await bot.send_poll(
             chat_id=chat_id,
-            question=f"📝 SAWAAL {idx + 1}/{total_q}:\n👉 {q_item['q']}",
+            question=f"Sawaal {idx + 1}/{total_q}: {q_item['q']}",
             options=q_item["o"],
             type="quiz",
             correct_option_id=q_item["a"],
@@ -303,10 +312,4 @@ async def start_native_quiz(message: types.Message):
 
 # 3️⃣ Quiz Rokne Ka Command: /quiz/off
 @dp.message(lambda message: message.text and message.text.lower().startswith('/quiz/off'))
-async def stop_native_quiz(message: types.Message):
-    chat_id = message.chat.id
-    if chat_id in GROUP_GAMES and GROUP_GAMES[chat_id]["active"]:
-        GROUP_GAMES[chat_id]["active"] = False
-        await message.answer("🛑 **Quiz ko beech mein hi rok diya gaya hai!**\n\nNaya game shuru karne ke liye `/quiz/on` likhein.")
-    else:
-        await message.answer("⚠️ **Abhi g
+async def st
