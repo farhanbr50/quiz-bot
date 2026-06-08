@@ -1,27 +1,19 @@
-# messages.py
-
 WELCOME_TEXT = """
-📊 💎 ═══ **WELCOME TO MY QUIZ BOT** ═══ 💎 📊
+✨ ═════ ✧ **QUIZ BATTLE** ✧ ═════ ✨
 
-👋 **Assalamu Alaikum {user_name}!**
-Welcome to the ultimate multiplayer battleground! 🚀
+🎮 *WELCOME PLAYER:* **{user_name}**
 
-Aapka is brand new, high-speed professional quiz group mein swagat hai. Yahan aap apne doston ke sath milkar live quiz khel sakte hain! 🎯
+🚀 *Aapka high-speed professional quiz group mein swagat hai! Apne doston ke sath milkar live quiz khelna shuru karein.*
 
-🔥 **Niche diye gaye buttons se apni favourite category chuno aur khelna shuru kro:**
-═══════════════════════════════════
-🧪 **Science** ── Enters the world of logic!
-🎥 **Movies** ── Bollywood, Hollywood & Gaming!
-🧠 **GK** ── Real-world trivia!
-💻 **Tech** ── iPhones, Android & Trends!
-═══════════════════════════════════
+📐 *CURRENT CATEGORY:* 🔢 **MATHEMATICS (MATHS)** 🔢
 
-📢 **SPEED BONUS INFO:**
-1️⃣ Har sawaal par *Fastest Finger First* active hai!
-2️⃣ Jo sabse pehle click karega use **120 Points** milenge! ✅
-3️⃣ Baaki sahi jawab par 50 Points milenge.
-4️⃣ Galat jawab par 0 points aur live board par naam dikhega!
+⚡ **RULES & INFO:**
+🥇 *Fastest finger first! Jo sabse pehle sahi click karega use **120 Points** milenge!*
+🟩 *Baaki sahi jawab dene waalon ko **50 Points** milenge.*
+❌ *Galat click par sidha **0 Points**.*
 
-🥇 Chalo dekhte hain aaj ka Leaderboard kaun top karta hai! �
-�
+⏳ **GET READY...** *Pehla sawaal 4 seconds mein aapke samne aa raha hai!*
+
+✨ ═════════════════════════
+✨
 """
