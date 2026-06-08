@@ -10,13 +10,12 @@ WELCOME_TEXT = """
 🚀 *Aapka high-speed professional quiz group mein swagat hai! Dil thaam ke baithiye...*
 
 📊 **[ QUIZ COMMANDS ]**
-▶️  `/start.quiz`  —  *New Quiz Game shuru karein*
-🛑  `/stop.quiz`   —  *Chal rahe game ko beech mein rokein*
+▶️  `/quiz/on`   —  *New Quiz Game shuru karein*
+🛑  `/quiz/off`  —  *Chal rahe game ko beech mein rokein*
+⚙️  `/sc <seconds>` — *Game ki speed badlein (e.g. /sc 10)*
 
-📐 ᴄᴀᴛᴇɢᴏʀʏ ::  🔢 **MATHEMATICS (MATHS)** 🔢
+📐 ᴄᴀᴛᴇɢᴏʀʏ ::  🔢 **MATHS + ENGLISH 📝**
 
-✨ ═════════════════════════════ ✨
-⏳ Pehla sawaal 4 seconds mein aapke samne aa raha hai...
 ✨ ═════════════════════════════ 
 ✨
 """
